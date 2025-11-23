@@ -9,6 +9,7 @@ from ase.io import write
 from dataclasses import dataclass
 from enum import IntEnum
 from io import StringIO
+from ase.io import read
 
 class AtomType(IntEnum):
     """Enum for atom types in spinel structure"""
@@ -39,10 +40,12 @@ class KMCParams:
     #   A-A (2nd nearest metal): 4 neighbors at (√3/4)a ≈ 0.433a
     #   B-B (1st nearest metal): 6 neighbors at (√2/4)a ≈ 0.354a
     #   B-A (2nd nearest metal): 12 neighbors at (√11/8)a ≈ 0.415a
+    #   O-O (32e sites): 12 neighbors at (√2/4)a ≈ 0.354a
 
     # Nearest-neighbor distances in ideal cubic spinel structure
     nn_factor_A: float = 0.454663336987  # (√3/4) * 1.05 for A-A neighbors
     nn_factor_B: float = 0.435307003734  # (√11/8) * 1.05 for B-B neighbors
+    nn_factor_O: float = 0.371231060123  # (√2/4) * 1.05 for O-O neighbors
 
     # Element list for SRO calculation
     elements: tuple = ('X', 'Ni', 'Co', 'Cu', 'Fe', 'Cr', 'Al')
@@ -61,6 +64,11 @@ class KMCParams:
     def nn_distance_B(self):
         """first and second Nearest-neighbor cutoff for B-site diffusion"""
         return self.nn_factor_B * self.unit_cell_size
+
+    @property
+    def nn_distance_O(self):
+        """Nearest-neighbor cutoff for O-site diffusion"""
+        return self.nn_factor_O * self.unit_cell_size
 
 
 def set_seed(seed):
@@ -101,7 +109,6 @@ def read_poscar_with_custom_symbols(poscar_path, custom_symbol_map=None):
 
     poscar_str = ''.join(modified_lines)
 
-    from ase.io import read
     atoms = read(StringIO(poscar_str), format='vasp')
 
     cell = atoms.cell.array

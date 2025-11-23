@@ -148,9 +148,25 @@ class CavityHealingKMC:
                 start_step = self.step
                 end_step = start_step + n_steps
 
+                # Time statistics
+                time_select = 0.0
+                time_sro = 0.0
+                time_update = 0.0
+                time_update_remove = 0.0
+                time_update_execute = 0.0
+                time_update_collect = 0.0
+                time_update_add = 0.0
+                time_update_add_barriers = 0.0
+                time_update_add_arrays = 0.0
+                time_update_add_catalog = 0.0
+                stats_interval = 50
+
                 for step in tqdm(range(start_step, end_step)):
                     # Select event
+                    t0 = time.perf_counter()
                     event_idx, dt, vac, cat, barrier, rate = self.events.select_event()
+                    time_select += time.perf_counter() - t0
+
                     if event_idx is None:
                         logger.warning("No more events!")
                         break
@@ -168,14 +184,41 @@ class CavityHealingKMC:
 
                     # Calculate and log SRO
                     if sro_interval > 0 and self.step % sro_interval == 0:
+                        t0 = time.perf_counter()
                         sro_values = self.sro_calc.calculate(self.structure.symbols,
                                                             self.neighbors.neighbors_dict)
                         sim_logger.write_sro(sro_f, self.step, self.time, sro_values,
                                            self.sro_calc.element_pairs)
+                        time_sro += time.perf_counter() - t0
 
                     # Execute event and update
+                    t0 = time.perf_counter()
                     self.events.update_after_hop(vac, cat)
+                    time_update += time.perf_counter() - t0
+
                     self.step += 1
+
+                    # Print time statistics every stats_interval steps
+                    if self.step % stats_interval == 0:
+                        steps_done = self.step - start_step
+                        total_time = time_select + time_update + time_sro
+
+                        logger.info(f"\n{'='*60}")
+                        logger.info(f"Step {self.step} - Time stats (avg over {steps_done} steps):")
+                        logger.info(f"{'='*60}")
+
+                        # Main components with percentages
+                        select_pct = (time_select / total_time * 100) if total_time > 0 else 0
+                        update_pct = (time_update / total_time * 100) if total_time > 0 else 0
+                        sro_pct = (time_sro / total_time * 100) if total_time > 0 else 0
+
+                        logger.info(f"  Select:        {time_select/steps_done*1000:6.3f} ms/step ({select_pct:5.1f}%)")
+                        logger.info(f"  Update (total):{time_update/steps_done*1000:6.3f} ms/step ({update_pct:5.1f}%)")
+
+                        if time_sro > 0:
+                            logger.info(f"  SRO:           {time_sro:.3f} s total ({sro_pct:5.1f}%)")
+
+                        logger.info(f"{'='*60}")
                     
                     # Save configuration
                     if log_interval > 0 and self.step % log_interval == 0:
@@ -250,16 +293,10 @@ if __name__ == '__main__':
         logger.info("\n" + "="*60)
         logger.info("RESUMING FROM CHECKPOINT")
         logger.info("="*60)
-
-        # Load checkpoint with energy model parameters
-        kmc = load_checkpoint(
-            args.resume_from,
-            device,
-            CavityHealingKMC,
-            energy_model_type=args.energy_model,
-            mace_model_path=args.mace_model_path
-        )
-
+        
+        # Load checkpoint
+        kmc = load_checkpoint(args.resume_from, device, CavityHealingKMC)
+        
         log_file = os.path.join(configs_folder, args.log_file)
         sro_log_file = os.path.join(configs_folder, args.sro_log_file)
     

@@ -37,6 +37,8 @@ class SpinelStructure:
         self.supercell_size = self._detect_supercell_size()
         
         # Classify atoms
+        # symbols and atom_types will evolve during simulation
+        # positions and cell remain fixed
         self.atom_types = np.zeros(len(symbols), dtype=np.int8)
         self._classify_atoms()
         
@@ -103,6 +105,11 @@ class SpinelStructure:
     def vacancy_mask(self) -> np.ndarray:
         """Mask for all cation vacancies (X)"""
         return (self.atom_types == AtomType.VACANCY_A) | (self.atom_types == AtomType.VACANCY_B)
+
+    @property
+    def oxygen_vacancy_mask(self) -> np.ndarray:
+        """Mask for oxygen vacancies (XO)"""
+        return self.atom_types == AtomType.OXYGEN_VACANCY
     
     @property
     def cation_mask(self) -> np.ndarray:
@@ -113,9 +120,10 @@ class SpinelStructure:
     def oxygen_mask(self) -> np.ndarray:
         """Mask for regular oxygen atoms (O, not XO)"""
         return self.atom_types == AtomType.OXYGEN
+
     
     @property
-    def cation_vacancy_mask(self) -> np.ndarray:
+    def AB_mask(self) -> np.ndarray:
         """Mask for cations and vacancies (excluding oxygen)"""
         return (
             (self.atom_types == AtomType.CATION_A) |
@@ -133,6 +141,11 @@ class SpinelStructure:
     def B_mask(self) -> np.ndarray:
         """Mask for all B-sites (octahedral)"""
         return (self.atom_types == AtomType.CATION_B) | (self.atom_types == AtomType.VACANCY_B)
+
+    @property
+    def O_mask(self) -> np.ndarray:
+        """Mask for all oxygen sites (O and XO)"""
+        return (self.atom_types == AtomType.OXYGEN) | (self.atom_types == AtomType.OXYGEN_VACANCY)
     
     def swap_atoms(self, idx1: int, idx2: int) -> None:
         """Swap two atoms (for executing hops)

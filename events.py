@@ -8,7 +8,7 @@ from optimized_structures import EventCatalog
 from structure import SpinelStructure
 from neighbors import NeighborManager
 from barriers import BarrierCalculator
-from utils import KMCParams
+from utils import KMCParams, AtomType
 
 logger = logging.getLogger(__name__)
 
@@ -42,22 +42,34 @@ class EventManager:
         self.catalog = None
     
     def build_catalog(self) -> None:
-        """Build initial event catalog"""
+        """Build initial event catalog for both cation and oxygen diffusion"""
         logger.info("Building event catalog...")
-        
-        # Find all vacancies
-        vacancy_indices = np.where(self.structure.vacancy_mask)[0]
-        
-        # Collect all possible hop pairs
+
+        # Type A: Cation vacancy hopping with neighboring cations
+        cation_vacancy_indices = np.where(self.structure.vacancy_mask)[0]
         hop_pairs = []
-        for vac in vacancy_indices:
-            if self.neighbors.nearest_neighbors_csr.has_neighbors(vac):
-                neighbors_idx, _ = self.neighbors.nearest_neighbors_csr.get_neighbors_with_distances(vac)
-                for neighbor_idx in neighbors_idx:
-                    if self.structure.cation_mask[neighbor_idx]:
-                        hop_pairs.append((vac, neighbor_idx))
-        
-        logger.info(f"Collected {len(hop_pairs)} potential events")
+
+        for vac in cation_vacancy_indices:
+            neighbors_idx = self.neighbors.nearest_neighbors_csr.get_neighbors(vac)
+            for neighbor_idx in neighbors_idx:
+                if self.structure.cation_mask[neighbor_idx]:
+                    hop_pairs.append((vac, neighbor_idx))
+
+        logger.info(f"Collected {len(hop_pairs)} potential cation events")
+
+        # Type B: Oxygen vacancy hopping with neighboring oxygens
+        oxygen_vacancy_indices = np.where(self.structure.oxygen_vacancy_mask)[0]
+        oxygen_hop_count = 0
+
+        for vac in oxygen_vacancy_indices:
+            neighbors_idx = self.neighbors.oxygen_neighbors_csr.get_neighbors(vac)
+            for neighbor_idx in neighbors_idx:
+                if self.structure.oxygen_mask[neighbor_idx]:
+                    hop_pairs.append((vac, neighbor_idx))
+                    oxygen_hop_count += 1
+
+        logger.info(f"Collected {oxygen_hop_count} potential oxygen events")
+        logger.info(f"Total potential events: {len(hop_pairs)}")
 
         # Batch compute barriers (filters out invalid hops)
         barriers_array, valid_hop_pairs = self.barrier_calc.compute_barriers_batch(
@@ -128,45 +140,22 @@ class EventManager:
         
         return new_vac_idx, new_cat_idx
     
-    def update_after_hop(self, vac_idx: int, cat_idx: int) -> dict:
+    def update_after_hop(self, vac_idx: int, cat_idx: int) -> None:
         """Update event catalog after a hop
 
         Args:
             vac_idx: Vacancy position BEFORE hop
             cat_idx: Cation position BEFORE hop
-
-        Returns:
-            dict with timing statistics for each step
         """
-        import time
-
-        timings = {}
-
         # Step 1: Remove old events
-        t0 = time.perf_counter()
         self._remove_old_events(vac_idx, cat_idx)
-        timings['remove'] = time.perf_counter() - t0
 
         # Step 2: Execute hop
-        t0 = time.perf_counter()
         new_vac_idx, new_cat_idx = self.execute_hop(vac_idx, cat_idx)
-        timings['execute'] = time.perf_counter() - t0
 
         # Step 3: Add new events
-        t0 = time.perf_counter()
         hop_pairs = self._collect_new_hop_pairs(new_vac_idx, new_cat_idx)
-        timings['collect'] = time.perf_counter() - t0
-
-        t0 = time.perf_counter()
-        add_timings = self._add_new_events(hop_pairs)
-        timings['add_events'] = time.perf_counter() - t0
-
-        # Add detailed breakdown of add_events
-        timings['add_compute_barriers'] = add_timings['compute_barriers']
-        timings['add_create_arrays'] = add_timings['create_arrays']
-        timings['add_catalog_add'] = add_timings['catalog_add']
-
-        return timings
+        self._add_new_events(hop_pairs)
     
     def _remove_old_events(self, vac_idx: int, cat_idx: int) -> None:
         """Remove events involving the vacancy and cation"""
@@ -175,59 +164,72 @@ class EventManager:
         self.catalog.remove_by_mask(keep_mask)
     
     def _collect_new_hop_pairs(self, new_vac_idx: int, new_cat_idx: int) -> List[Tuple[int, int]]:
-        """Collect new hop pairs after a hop"""
+        """Collect new hop pairs after a hop
+
+        Intelligently detects vacancy type:
+        - If new vacancy is a cation vacancy (X), scan for cation neighbors
+        - If new vacancy is an oxygen vacancy (XO), scan for oxygen neighbors
+        """
         hop_pairs = []
-        
-        # New vacancy - add events to its cation neighbors
-        if self.neighbors.nearest_neighbors_csr.has_neighbors(new_vac_idx):
-            neighbors_idx, _ = self.neighbors.nearest_neighbors_csr.get_neighbors_with_distances(new_vac_idx)
+
+        # Detect the type of the new vacancy
+        is_cation_vacancy = self.structure.vacancy_mask[new_vac_idx]
+        is_oxygen_vacancy = self.structure.oxygen_vacancy_mask[new_vac_idx]
+
+        # New vacancy - add events based on vacancy type
+        if is_cation_vacancy:
+            # Cation vacancy: scan for cation neighbors
+            neighbors_idx = self.neighbors.nearest_neighbors_csr.get_neighbors(new_vac_idx)
             for neighbor_idx in neighbors_idx:
                 if self.structure.cation_mask[neighbor_idx]:
                     hop_pairs.append((new_vac_idx, neighbor_idx))
-        
-        # New cation - add events from its vacancy neighbors
-        if self.neighbors.nearest_neighbors_csr.has_neighbors(new_cat_idx):
-            neighbors_idx, _ = self.neighbors.nearest_neighbors_csr.get_neighbors_with_distances(new_cat_idx)
+
+        elif is_oxygen_vacancy:
+            # Oxygen vacancy: scan for oxygen neighbors
+            neighbors_idx = self.neighbors.oxygen_neighbors_csr.get_neighbors(new_vac_idx)
+            for neighbor_idx in neighbors_idx:
+                if self.structure.oxygen_mask[neighbor_idx]:
+                    hop_pairs.append((new_vac_idx, neighbor_idx))
+
+        # Detect the type of the new atom (what was the vacancy before)
+        is_cation = self.structure.cation_mask[new_cat_idx]
+        is_oxygen = self.structure.oxygen_mask[new_cat_idx]
+
+        # New atom - add events from its vacancy neighbors
+        if is_cation:
+            # Cation: scan for cation vacancy neighbors
+            neighbors_idx = self.neighbors.nearest_neighbors_csr.get_neighbors(new_cat_idx)
             for neighbor_idx in neighbors_idx:
                 if self.structure.vacancy_mask[neighbor_idx]:
                     hop_pairs.append((neighbor_idx, new_cat_idx))
-        
+
+        elif is_oxygen:
+            # Oxygen: scan for oxygen vacancy neighbors
+            neighbors_idx = self.neighbors.oxygen_neighbors_csr.get_neighbors(new_cat_idx)
+            for neighbor_idx in neighbors_idx:
+                if self.structure.oxygen_vacancy_mask[neighbor_idx]:
+                    hop_pairs.append((neighbor_idx, new_cat_idx))
+
         return hop_pairs
     
-    def _add_new_events(self, hop_pairs: List[Tuple[int, int]]) -> dict:
-        """Compute barriers and add new events to catalog
-
-        Returns:
-            dict with timing statistics for barrier computation and catalog update
-        """
-        import time
-
-        timings = {}
-
+    def _add_new_events(self, hop_pairs: List[Tuple[int, int]]) -> None:
+        """Compute barriers and add new events to catalog"""
         if len(hop_pairs) == 0:
-            return {'compute_barriers': 0.0, 'create_arrays': 0.0, 'catalog_add': 0.0}
+            return
 
         # Batch compute barriers (filters out invalid hops)
-        t0 = time.perf_counter()
         barriers_array, valid_hop_pairs = self.barrier_calc.compute_barriers_batch(
             self.structure, self.neighbors, hop_pairs,
             batch_size=self.params.batch_size
         )
-        timings['compute_barriers'] = time.perf_counter() - t0
 
         if len(valid_hop_pairs) == 0:
-            return {'compute_barriers': timings['compute_barriers'], 'create_arrays': 0.0, 'catalog_add': 0.0}
+            return
 
         # Create events
-        t0 = time.perf_counter()
         new_events = np.array(valid_hop_pairs, dtype=np.int32)
         new_barriers = barriers_array.astype(np.float32)
         new_rates = (self.params.nu0 * np.exp(-new_barriers / self.params.kbt)).astype(np.float32)
-        timings['create_arrays'] = time.perf_counter() - t0
 
         # Add to catalog
-        t0 = time.perf_counter()
         self.catalog.add_events(new_events, new_barriers, new_rates)
-        timings['catalog_add'] = time.perf_counter() - t0
-
-        return timings
