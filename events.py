@@ -102,12 +102,16 @@ class EventManager:
         # Get rates
         rates = self.catalog.get_rates()
         total_rate = rates.sum()
-        
+
         # Select event
         normalized_rates = rates / total_rate
         cumsum = np.cumsum(normalized_rates)
         r = np.random.random()
         event_idx = np.searchsorted(cumsum, r)
+
+        # Handle edge case: searchsorted can return len(cumsum) due to floating-point precision
+        if event_idx >= self.catalog.size:
+            event_idx = self.catalog.size - 1
         
         # Time increment
         dt = -np.log(np.random.random()) / total_rate
