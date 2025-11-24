@@ -50,6 +50,22 @@ class KMCParams:
     # Element list for SRO calculation
     elements: tuple = ('X', 'Ni', 'Co', 'Cu', 'Fe', 'Cr', 'Al')
 
+    # Base energy barriers (in eV) for different elements
+    base_barriers: dict = None
+
+    def __post_init__(self):
+        """Initialize base_barriers with default values if not provided"""
+        if self.base_barriers is None:
+            self.base_barriers = {
+                'Cu': 0.6,   # Fastest
+                'Fe': 0.9,
+                'Co': 1.1,
+                'Ni': 1.4,
+                'Al': 2.0,
+                'Cr': 2.4,   # Slowest, anchors the lattice
+                'O': 2.5,    # Oxygen diffusion baseline
+            }
+
     @property
     def kbt(self):
         """Return kB*T for convenience"""

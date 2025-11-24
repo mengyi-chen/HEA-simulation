@@ -19,24 +19,29 @@ class BarrierCalculator:
     - Apply element-dependent base barriers
     """
 
-    # ALERT: Base barriers (in eV) for different elements
-    BASE_BARRIERS = {
-        'Cu': 0.6,   # Fastest
-        'Fe': 0.9,
-        'Co': 1.1,
-        'Ni': 1.4,
-        'Al': 2.0,
-        'Cr': 2.4,   # Slowest, anchors the lattice
-        'O': 2.5,    # Oxygen diffusion baseline
-    }
-
-    def __init__(self, energy_model: EnergyModel):
+    def __init__(self, energy_model: EnergyModel, base_barriers: dict = None):
         """Initialize barrier calculator
 
         Args:
             energy_model: EnergyModel instance for energy prediction
+            base_barriers: Dictionary of base barriers (in eV) for different elements.
+                          If None, uses default values.
         """
         self.energy_model = energy_model
+
+        # Set base barriers with default values if not provided
+        if base_barriers is None:
+            self.base_barriers = {
+                'Cu': 0.6,   # Fastest
+                'Fe': 0.9,
+                'Co': 1.1,
+                'Ni': 1.4,
+                'Al': 2.0,
+                'Cr': 2.4,   # Slowest, anchors the lattice
+                'O': 2.5,    # Oxygen diffusion baseline
+            }
+        else:
+            self.base_barriers = base_barriers
     
     def build_hop_structures(self, structure: SpinelStructure,
                            neighbor_manager: NeighborManager,
@@ -151,7 +156,7 @@ class BarrierCalculator:
         # Apply base barrier + thermodynamic correction formula
         barriers = np.zeros(len(valid_hop_pairs))
         for i, element in enumerate(hopping_elements):
-            base_barrier = self.BASE_BARRIERS.get(element, 1.5)  # Default to 1.5 eV if not found
+            base_barrier = self.base_barriers.get(element, 1.5)  # Default to 1.5 eV if not found
             barriers[i] = base_barrier + max(0, delta_E_mlp[i])
 
         return barriers, valid_hop_pairs

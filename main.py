@@ -9,16 +9,17 @@ Simplified implementation with clear separation of concerns:
 - EventManager: Manages KMC events
 - SROCalculator: Calculates short-range order
 - SimulationLogger: Handles logging
-"""
+""" 
 # TODO: CHGNet efficiency improvements
 # TODO: add oxygen dynamics 
-# TODO: add energy barrier 
+# TODO: add energy barrier: the current setting is not totally correct 
 import numpy as np
 import time
 import os
 import argparse
 import logging
 import torch
+import json
 from tqdm import tqdm
 from typing import Optional, Tuple, List
 
@@ -81,7 +82,12 @@ class CavityHealingKMC:
             energy_model = create_energy_model(energy_model_type, device=device)
         logger.info(f"Using energy model: {energy_model.get_model_name()}")
 
-        self.barrier_calc = BarrierCalculator(energy_model)
+        # Log base barriers
+        logger.info("Base energy barriers (eV):")
+        for element, barrier in sorted(self.params.base_barriers.items()):
+            logger.info(f"  {element}: {barrier:.2f}")
+
+        self.barrier_calc = BarrierCalculator(energy_model, base_barriers=self.params.base_barriers)
         
         # Initialize event manager
         self.events = EventManager(self.structure, self.neighbors, self.barrier_calc, self.params)
@@ -224,8 +230,16 @@ if __name__ == '__main__':
     parser.add_argument('--energy_model', type=str, default='chgnet', choices=['chgnet', 'm3gnet', 'mace'], help='Energy model to use')
     parser.add_argument('--mace_model_path', type=str, default='../MACE/mace-mh-1.model', help='Path to MACE model file')
 
+    # Configuration file for barriers
+    parser.add_argument('--barriers_config', type=str, default='config.json', help='Path to JSON config file for barriers')
+
     args = parser.parse_args()
-    
+
+    # Load barriers from config file
+    with open(args.barriers_config, 'r') as f:
+        config = json.load(f)
+        base_barriers = config.get('base_barriers', None)
+
     # Parse device
     device = torch.device(f"cuda:{args.device}" if torch.cuda.is_available() else "cpu")
     set_seed(args.seed)
@@ -286,7 +300,8 @@ if __name__ == '__main__':
         params = KMCParams(
             temperature=args.temp,
             cutoff=args.cutoff,
-            batch_size=args.batch_size
+            batch_size=args.batch_size,
+            base_barriers=base_barriers
         )
         
         # Create KMC instance
