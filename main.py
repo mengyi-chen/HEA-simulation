@@ -221,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_file', type=str, default='kmc_steps.csv', help='CSV file for kMC steps')
     parser.add_argument('--sro_interval', type=int, default=1000, help='Interval for SRO calculation')
     parser.add_argument('--sro_log_file', type=str, default='sro_log.csv', help='CSV file for SRO')
-    parser.add_argument('--poscar_path', type=str, default='./generate_config/POSCAR_24x24x24_with_cavity.vasp')
+    parser.add_argument('--poscar_path', type=str, default='./generate_config/POSCAR_6x6x6_with_cavity.vasp')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size for energy model')
     parser.add_argument('--checkpoint_interval', type=int, default=10000, help='Checkpoint interval')
     parser.add_argument('--resume_from', type=str, default=None, help='Path to checkpoint to resume')
@@ -231,7 +231,7 @@ if __name__ == '__main__':
     parser.add_argument('--mace_model_path', type=str, default='../MACE/mace-mh-1.model', help='Path to MACE model file')
 
     # Configuration file for barriers
-    parser.add_argument('--barriers_config', type=str, default='config.json', help='Path to JSON config file for barriers')
+    parser.add_argument('--barriers_config', type=str, default='config_uniform.json', help='Path to JSON config file for barriers')
 
     args = parser.parse_args()
 

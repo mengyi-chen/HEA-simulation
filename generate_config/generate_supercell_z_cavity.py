@@ -37,19 +37,20 @@ o_positions = np.array(positions[n_fe:])
 print(f"Original unit cell: {n_fe} metal atoms, {n_o} O atoms")
 print(f"Lattice constant: {lattice_vectors[0,0]:.4f} Å")
 
-# Create supercell
-nx, ny, nz = 24, 24, 24
-# nx, ny, nz = 6, 6, 6
-# nx, ny, nz = 6, 6, 2
+# Create supercell (nx * ny * nz)
+# nx, ny, nz = 24, 24, 24
+nx, ny, nz = 6, 6, 6
 print(f"Creating {nx}x{ny}x{nz} supercell...")
+
+# Define cavity parameters (6x6x24 unit cells - through entire z direction)
+# Centered in xy, spanning full z
+# cavity_size_xy = 6 # (cavity_size_xy * cavity_size_xy * nz )
+cavity_size_xy = 2 # (cavity_size_xy * cavity_size_xy * nz )
 
 # New lattice vectors
 new_lattice = lattice_vectors * np.array([nx, ny, nz])[:, np.newaxis]
 
-# Define cavity parameters (6x6x24 unit cells - through entire z direction)
-# Centered in xy, spanning full z
-cavity_size_xy = 6
-# cavity_size_xy = 2
+
 cavity_x_start = (nx - cavity_size_xy) / 2 / nx  # Center in x
 cavity_x_end = (nx + cavity_size_xy) / 2 / nx
 cavity_y_start = (ny - cavity_size_xy) / 2 / ny  # Center in y
