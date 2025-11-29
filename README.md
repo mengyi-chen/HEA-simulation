@@ -202,3 +202,7 @@ Supported atom types:
 - **Cutoff Radius**: Smaller cutoffs reduce neighbor list size and computation
 - **Checkpoint Interval**: More frequent checkpointing increases I/O overhead
 - **Log Interval**: Reduce logging frequency for faster simulations
+
+## License
+
+This project is licensed under the MIT License. 
