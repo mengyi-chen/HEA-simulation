@@ -39,7 +39,15 @@ class NeighborManager:
         self.oxygen_neighbors_csr = None  # Nearest neighbors for oxygen diffusion (CSR)
         
         logger.info("Building neighbor lists...")
+        # Build general neighbor list for all atoms
         self._build_all_neighbors()
+
+        # Build nearest-neighbor list for cation diffusion (separate call with tighter cutoff)
+        self._build_nearest_neighbors()
+
+        # Build oxygen neighbor list (separate call with tighter cutoff)
+        self._build_oxygen_neighbors()
+
     
     def _build_all_neighbors(self) -> None:
         """Build both general and nearest-neighbor lists"""
@@ -70,13 +78,7 @@ class NeighborManager:
 
         # Log statistics
         self._log_general_neighbors()
-
-        # Build nearest-neighbor list for cation diffusion (separate call with tighter cutoff)
-        self._build_nearest_neighbors(pos_cart, n_atoms)
-
-        # Build oxygen neighbor list (separate call with tighter cutoff)
-        self._build_oxygen_neighbors(pos_cart, n_atoms)
-    
+         
     def _log_general_neighbors(self) -> None:
         """Log statistics for general neighbor list (for energy calculations)"""
         A_indices = np.where(self.structure.A_mask)[0]
@@ -97,8 +99,12 @@ class NeighborManager:
         logger.info(f"  O-sites: {total_bonds_O} bonds (avg {avg_O:.1f} per atom)")
         logger.info(f"  Memory usage: {self.neighbors_csr.memory_usage() / 1024:.1f} KB")
     
-    def _build_nearest_neighbors(self, pos_cart, n_atoms) -> None:
+    def _build_nearest_neighbors(self) -> None:
         """Build nearest-neighbor lists for cation diffusion (vectorized)"""
+
+        pos_cart = self.structure.positions @ self.structure.cell
+        n_atoms = self.structure.n_atoms
+
         nn_distance_A = self.params.nn_distance_A
         nn_distance_B = self.params.nn_distance_B
 
@@ -168,11 +174,15 @@ class NeighborManager:
         logger.info(f"  B-sites: {total_bonds_B} bonds (avg {avg_B:.1f} per atom within {nn_distance_B:.2f} Å)")
         logger.info(f"  Memory usage: {self.nearest_neighbors_csr.memory_usage() / 1024:.1f} KB")
 
-    def _build_oxygen_neighbors(self, pos_cart, n_atoms) -> None:
+    def _build_oxygen_neighbors(self) -> None:
         """Build nearest-neighbor list for oxygen diffusion (vectorized)
 
         Connect atom i to atom j IF both are oxygen species (O or XO) AND distance < nn_distance_O
         """
+
+        pos_cart = self.structure.positions @ self.structure.cell
+        n_atoms = self.structure.n_atoms
+
         nn_distance_O = self.params.nn_distance_O
 
         # Use oxygen-specific cutoff

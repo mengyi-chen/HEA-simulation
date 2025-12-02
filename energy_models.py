@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import List, Union
 import numpy as np
 from ase import Atoms
-
+import torch
 
 class EnergyModel(ABC):
     """Abstract base class for energy models
@@ -55,6 +55,9 @@ class CHGNetModel(EnergyModel):
 
         self.model = CHGNet.load(use_device=device)
         self.model.graph_converter.atom_graph_cutoff = graph_cutoff
+        
+        # NOTE: calculat the total energy, not intensive property
+        self.model.is_intensive = False 
         self.device = device
         self.adaptor = AseAtomsAdaptor()
 
@@ -70,17 +73,20 @@ class CHGNetModel(EnergyModel):
         Returns:
             energies: Array of energies in eV
         """
+
         # Convert ASE Atoms to pymatgen Structure for CHGNet
         if not isinstance(structures, list):
             structures = [structures]
 
         pmg_structures = [self.adaptor.get_structure(s) for s in structures]
 
-        results = self.model.predict_structure(
-            pmg_structures,
-            task='e',
-            batch_size=batch_size
-        )
+        # Use no_grad since we only need energy, not forces/gradients
+        with torch.no_grad():
+            results = self.model.predict_structure(
+                pmg_structures,
+                task='e',
+                batch_size=batch_size
+            )
 
         # Extract energies
         if isinstance(results, list):
