@@ -79,7 +79,7 @@ python main.py --poscar_path ./generate_config/POSCAR_6x6x6_with_cavity.vasp \
 
 - `--device`: CUDA device ID or 'cpu' (default: '2')
 - `--temp`: Temperature in Kelvin (default: 1000)
-- `--cutoff`: Cutoff radius for neighbor list in Angstrom (default: 6.0)
+- `--n_cutoff_cell`: Number of unit cells for cutoff radius (default: 1)
 - `--steps`: Number of KMC steps (default: 1,000,000)
 - `--seed`: Random seed for reproducibility (default: 0)
 - `--log_interval`: Save configurations every N steps (default: 1000)

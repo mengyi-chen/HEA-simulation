@@ -35,7 +35,14 @@ class SpinelStructure:
         
         # Determine supercell size
         self.supercell_size = self._detect_supercell_size()
-        
+
+        # Validate n_cutoff_cell
+        min_supercell_dim = min(self.supercell_size)
+        max_allowed_n_cutoff_cell = min_supercell_dim // 2
+        assert params.n_cutoff_cell <= max_allowed_n_cutoff_cell, \
+            f"n_cutoff_cell ({params.n_cutoff_cell}) must be <= {max_allowed_n_cutoff_cell} " \
+            f"(half of smallest supercell dimension {min_supercell_dim})"
+
         # Classify atoms
         # symbols and atom_types will evolve during simulation
         # positions and cell remain fixed

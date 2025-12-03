@@ -118,8 +118,7 @@ class EventManager:
         
         # Get event info
         events = self.catalog.get_events()
-        barriers = self.catalog.get_barriers()
-        
+        barriers = self.catalog.get_barriers()        
         vac, cat = events[event_idx]
         barrier = barriers[event_idx]
         rate = rates[event_idx]
@@ -162,6 +161,7 @@ class EventManager:
         self._add_new_events(hop_pairs)
     
     def _remove_old_events(self, vac_idx: int, cat_idx: int) -> None:
+        # TODO: need to remove all the events within the local environment
         """Remove events involving the vacancy and cation"""
         events = self.catalog.get_events()
         keep_mask = (events[:, 0] != vac_idx) & (events[:, 1] != cat_idx)
@@ -217,6 +217,8 @@ class EventManager:
         return hop_pairs
     
     def _add_new_events(self, hop_pairs: List[Tuple[int, int]]) -> None:
+        
+        # TODO: need to add all the events within the local environment
         """Compute barriers and add new events to catalog"""
         if len(hop_pairs) == 0:
             return

@@ -171,6 +171,8 @@ def load_checkpoint(checkpoint_path: str, device, kmc_class,
     instance.neighbors.structure = instance.structure
     instance.neighbors.params = params
     instance.neighbors.neighbors_dict = defaultdict(list, neighbors_dict)
+    instance.neighbors.nearest_neighbors_dict = nearest_neighbors_dict
+    instance.neighbors.oxygen_neighbors_dict = oxygen_neighbors_dict
     instance.neighbors.neighbors_csr = CSRNeighborList.from_dict(neighbors_dict, n_atoms, with_distances=False)
     instance.neighbors.nearest_neighbors_csr = CSRNeighborList.from_dict(nearest_neighbors_dict, n_atoms, with_distances=True)
     instance.neighbors.oxygen_neighbors_csr = CSRNeighborList.from_dict(oxygen_neighbors_dict, n_atoms, with_distances=True)

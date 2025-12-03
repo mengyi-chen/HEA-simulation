@@ -43,18 +43,16 @@ class EnergyModel(ABC):
 class CHGNetModel(EnergyModel):
     """CHGNet energy model wrapper"""
 
-    def __init__(self, device='cpu', graph_cutoff: float = 10.0):
+    def __init__(self, device='cpu'):
         """Initialize CHGNet model
 
         Args:
             device: Device for computation ('cpu' or 'cuda:0', etc.)
-            graph_cutoff: Graph cutoff radius for CHGNet
         """
         from chgnet.model import CHGNet
         from pymatgen.io.ase import AseAtomsAdaptor
 
         self.model = CHGNet.load(use_device=device)
-        self.model.graph_converter.atom_graph_cutoff = graph_cutoff
         
         # NOTE: calculat the total energy, not intensive property
         self.model.is_intensive = False 

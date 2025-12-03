@@ -136,9 +136,9 @@ def convert_to_trajectory(configs_folder, output_file="trajectory.xyz"):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert POSCAR files to XYZ trajectory')
-    parser.add_argument('--configs_folder', type=str, default='configs_2025_11_20_23_08_58',
+    parser.add_argument('--configs_folder', type=str, default='../configs_2025_11_26_14_20_16',
                        help='Folder containing POSCAR_step_*.vasp files')
-    parser.add_argument('--output', type=str, default='trajectory_24x24x24.xyz',
+    parser.add_argument('--output', type=str, default='configs_2025_11_26_14_20_16/trajectory_24x24x24.xyz',
                        help='Output trajectory filename (default: trajectory.xyz)')
     
     args = parser.parse_args()
