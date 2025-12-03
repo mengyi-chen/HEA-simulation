@@ -43,6 +43,67 @@ class BarrierCalculator:
         else:
             self.base_barriers = base_barriers
     
+    # def build_hop_structures(self, structure: SpinelStructure,
+    #                     neighbor_manager: NeighborManager,
+    #                     vac_idx: int, atom_idx: int) -> Tuple[Atoms, Atoms]:
+    #     """Build initial and final structures for a hop
+
+    #     Args:
+    #         structure: SpinelStructure instance
+    #         neighbor_manager: NeighborManager instance
+    #         vac_idx: Vacancy index (destination)
+    #         atom_idx: Atom index (source, can be cation or oxygen)
+
+    #     Returns:
+    #         struct_init: Initial structure (atom at atom_idx)
+    #         struct_final: Final structure (atom moved to vac_idx)
+    #     """
+    #     # Build combined cluster including neighbors of both sites
+    #     cluster_indices = set([atom_idx, vac_idx])
+
+    #     # Get neighbors from CSR
+    #     neighbors_csr = neighbor_manager.neighbors_csr
+    #     cluster_indices.update(neighbors_csr.get_neighbors(atom_idx))
+    #     cluster_indices.update(neighbors_csr.get_neighbors(vac_idx))
+    #     cluster_indices = list(cluster_indices)
+
+    #     # Get positions and symbols
+    #     cluster_pos = structure.positions[cluster_indices] @ structure.cell
+    #     cluster_symbols = [structure.symbols[i] for i in cluster_indices]
+
+    #     # Remove vacancies (both X and XO)
+    #     non_vac_mask = [s not in ['X', 'XO'] for s in cluster_symbols]
+    #     non_vac_indices = [idx for idx, m in zip(cluster_indices, non_vac_mask) if m]
+    #     non_vac_pos = cluster_pos[non_vac_mask]
+    #     non_vac_symbols = [s for s, m in zip(cluster_symbols, non_vac_mask) if m]
+
+    #     if len(non_vac_symbols) == 0:
+    #         raise ValueError(f"Empty cluster for hop {atom_idx}->{vac_idx}")
+
+    #     # Find atom index in cluster
+    #     atom_cluster_idx = non_vac_indices.index(atom_idx)
+
+    #     # Initial structure
+    #     struct_init = Atoms(
+    #         symbols=non_vac_symbols,
+    #         positions=non_vac_pos,
+    #         cell=structure.cell,
+    #         pbc=[True, True, False]
+    #     )
+
+    #     # Final structure (move atom to vacancy position)
+    #     final_pos = non_vac_pos.copy()
+    #     final_pos[atom_cluster_idx] = structure.positions[vac_idx] @ structure.cell
+
+    #     struct_final = Atoms(
+    #         symbols=non_vac_symbols,
+    #         positions=final_pos,
+    #         cell=structure.cell,
+    #         pbc=[True, True, False]
+    #     )
+
+    #     return struct_init, struct_final
+    
     def build_hop_structures(self, structure: SpinelStructure,
                            neighbor_manager: NeighborManager,
                            vac_idx: int, atom_idx: int) -> Tuple[Atoms, Atoms]:

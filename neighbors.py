@@ -69,7 +69,36 @@ class NeighborManager:
             logger.info(f"Auto-saving neighbor lists to {save_file}...")
             self.save_neighbors(save_file)
 
-    
+    # def _build_all_neighbors(self) -> None:
+    #     """Build both general and nearest-neighbor lists"""
+    #     pos_cart = self.structure.positions @ self.structure.cell
+    #     n_atoms = self.structure.n_atoms
+
+    #     # Build general neighbor list
+    #     i_list, j_list = neighbour_list(
+    #         'ij',
+    #         positions=pos_cart,
+    #         cutoff=6.0,
+    #         cell=self.structure.cell,
+    #         pbc=[True, True, False]
+    #     )
+
+    #     # Store general neighbors (for all atoms) - vectorized
+    #     neighbors_dict = defaultdict(list)
+    #     valid_pairs = (i_list != j_list)
+    #     i_valid = i_list[valid_pairs]
+    #     j_valid = j_list[valid_pairs]
+
+    #     for i, j in zip(i_valid, j_valid):
+    #         neighbors_dict[i].append(j)
+        
+    #     # Convert to CSR and keep dict
+    #     self.neighbors_csr = CSRNeighborList.from_dict(neighbors_dict, n_atoms, with_distances=False)
+    #     self.neighbors_dict = neighbors_dict
+
+    #     # Log statistics
+    #     self._log_general_neighbors()
+
     def _build_all_neighbors(self) -> None:
         """Build general neighbor list using cubic boundaries"""
         pos_cart = self.structure.positions @ self.structure.cell

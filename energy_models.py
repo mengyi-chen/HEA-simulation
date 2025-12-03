@@ -54,6 +54,8 @@ class CHGNetModel(EnergyModel):
 
         self.model = CHGNet.load(use_device=device)
         
+        # self.model.graph_converter.atom_graph_cutoff = 10.0
+
         # NOTE: calculat the total energy, not intensive property
         self.model.is_intensive = False 
         self.device = device

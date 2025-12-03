@@ -174,7 +174,7 @@ class CavityHealingKMC:
                     # Calculate and log SRO
                     if sro_interval > 0 and self.step % sro_interval == 0:
                         sro_values = self.sro_calc.calculate(self.structure.symbols,
-                                                            self.neighbors.neighbors_dict)
+                                                            self.neighbors.nearest_neighbors_dict)
                         sim_logger.write_sro(sro_f, self.step, self.time, sro_values,
                                            self.sro_calc.element_pairs)
 
@@ -226,7 +226,8 @@ if __name__ == '__main__':
     parser.add_argument('--resume_from', type=str, default=None, help='Path to checkpoint to resume')
 
     # Neighbor list management
-    parser.add_argument('--neighbor_file', type=str, default='generate_config/neighbor_6x6x6.pkl', help='Path to load/save neighbor lists (if None, auto-saves to generate_config/neighbor_{size}.pkl)')
+    # parser.add_argument('--neighbor_file', type=str, default='generate_cvvonfig/neighbor_6x6x6.pkl', help='Path to load/save neighbor lists (if None, auto-saves to generate_config/neighbor_{size}.pkl)')
+    parser.add_argument('--neighbor_file', type=str, default=None, help='Path to load/save neighbor lists (if None, auto-saves to generate_config/neighbor_{size}.pkl)')
 
     # Energy model selection
     parser.add_argument('--energy_model', type=str, default='chgnet', choices=['chgnet', 'm3gnet', 'mace'], help='Energy model to use')
