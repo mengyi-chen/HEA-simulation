@@ -179,7 +179,7 @@ class CavityHealingKMC:
     """
     
     def __init__(self, poscar_path: str, device, params: Optional[KMCParams] = None,
-                 energy_model_type: str = 'chgnet', mace_model_path: str = None,
+                 energy_model_type: str = 'chgnet', mace_model_name: str = 'medium-omat-0',
                  neighbor_file: str = None,  configs_folder: str = 'kmc_configs'):
         """Initialize KMC simulator
 
@@ -192,7 +192,7 @@ class CavityHealingKMC:
             neighbor_file: Optional path to load/save neighbor lists
         """
         logger.info("="*60)
-        logger.info("Cavity Healing kMC Initialization (Refactored)")
+        logger.info("Cavity Healing kMC Initialization")
         logger.info("="*60)
 
         self.params = params if params is not None else KMCParams()
@@ -210,7 +210,7 @@ class CavityHealingKMC:
         # Initialize energy model
         logger.info(f"Loading {energy_model_type} model...")
         if energy_model_type == 'mace':
-            energy_model = create_energy_model(energy_model_type, device=device, model_path=mace_model_path)
+            energy_model = create_energy_model(energy_model_type, device=device, model_name=mace_model_name)
         else:
             energy_model = create_energy_model(energy_model_type, device=device)
         logger.info(f"Using energy model: {energy_model.get_model_name()}")
@@ -232,10 +232,10 @@ class CavityHealingKMC:
     
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Cavity Healing kMC (Refactored)')
-    parser.add_argument('--device', type=str, default='2', help='CUDA device or cpu')
+    parser = argparse.ArgumentParser(description='Cavity Healing kMC')
+    parser.add_argument('--device', type=str, default='5', help='CUDA device or cpu')
     parser.add_argument('--temp', type=float, default=1000, help='Temperature in Kelvin')
-    parser.add_argument('--n_cutoff_cell', type=int, default=1, help='Number of unit cells for cutoff radius (half-length of local cube)')
+    # parser.add_argument('--n_cutoff_cell', type=int, default=1, help='DEPRECATED: Number of unit cells for cutoff radius (no longer used)')
     parser.add_argument('--steps', type=int, default=int(1e6), help='Number of kMC steps')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--log_interval', type=int, default=1000, help='Save interval for configurations')
@@ -243,7 +243,7 @@ if __name__ == '__main__':
     parser.add_argument('--sro_interval', type=int, default=1000, help='Interval for SRO calculation')
     parser.add_argument('--sro_log_file', type=str, default='sro_log.csv', help='CSV file for SRO')
     parser.add_argument('--poscar_path', type=str, default='./POSCAR_step_79000.vasp')
-    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for energy model')
+    parser.add_argument('--batch_size', type=int, default=1, help='Batch size for energy model')
     parser.add_argument('--checkpoint_interval', type=int, default=10000, help='Checkpoint interval')
     parser.add_argument('--resume_from', type=str, default=None, help='Path to checkpoint to resume')
 
@@ -251,8 +251,9 @@ if __name__ == '__main__':
     parser.add_argument('--neighbor_file', type=str, default=None, help='Path to load/save neighbor lists (if None, auto-saves to generate_config/neighbor_{size}.pkl)')
 
     # Energy model selection
-    parser.add_argument('--energy_model', type=str, default='chgnet', choices=['chgnet', 'm3gnet', 'mace'], help='Energy model to use')
-    parser.add_argument('--mace_model_path', type=str, default='../MACE/mace-mh-1.model', help='Path to MACE model file')
+    parser.add_argument('--energy_model', type=str, default='chgnet', choices=['chgnet', 'mace'], help='Energy model to use')
+    parser.add_argument('--mace_model_name', type=str, default='medium-omat-0',
+                        help='MACE foundation model name (e.g., medium-omat-0, small-omat-0, medium, large)')
 
     # Configuration file for barriers
     parser.add_argument('--barriers_config', type=str, default='../config_uniform.json', help='Path to JSON config file for barriers')
@@ -269,7 +270,7 @@ if __name__ == '__main__':
     set_seed(args.seed)
 
     # Start fresh
-    configs_folder = f"full_structure"
+    configs_folder = f"full_structure_{args.energy_model}"
     os.makedirs(configs_folder, exist_ok=True)
 
     log_file = os.path.join(configs_folder, args.log_file)
@@ -288,7 +289,7 @@ if __name__ == '__main__':
     # Create parameters
     params = KMCParams(
         temperature=args.temp,
-        n_cutoff_cell=args.n_cutoff_cell,
+        # n_cutoff_cell=args.n_cutoff_cell,
         batch_size=args.batch_size,
         base_barriers=base_barriers
     )
@@ -299,7 +300,7 @@ if __name__ == '__main__':
         device=device,
         params=params,
         energy_model_type=args.energy_model,
-        mace_model_path=args.mace_model_path,
-        neighbor_file=args.neighbor_file, 
+        mace_model_name=args.mace_model_name,
+        neighbor_file=args.neighbor_file,
         configs_folder=configs_folder
     )

@@ -361,8 +361,9 @@ class BarrierCalculator:
             batch_barriers = np.zeros(len(batch_valid_pairs))
             for i, element in enumerate(batch_hopping_elements):
                 base_barrier = self.base_barriers.get(element, 1.5)  # Default to 1.5 eV if not found
-                # TODO: base_barrier + 1/2 delta_E_mlp ?
-                batch_barriers[i] = base_barrier + max(0, delta_E_mlp[i])
+                batch_barriers[i] = base_barrier + 0.5 * delta_E_mlp[i]
+                if batch_barriers[i] < 0.0:
+                    batch_barriers[i] = 0.0  # Ensure non-negative barriers
 
             all_barriers.append(batch_barriers)
             all_valid_pairs.extend(batch_valid_pairs)

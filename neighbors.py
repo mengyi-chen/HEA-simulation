@@ -186,6 +186,7 @@ class NeighborManager:
         - XY direction: Select 3x3 unit cells centered on the cell containing the vacancy
         - Z direction: If >=1 unit cell below, include 1 cell below; if >=1 cell above, include 1 cell above
         """
+        # TODO: reorder according to site mappings 
         n_atoms = self.structure.n_atoms
         neighbors_dict = defaultdict(list)
 
