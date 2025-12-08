@@ -211,8 +211,8 @@ def get_local_cubic_environment_centered_at_vacancy(structure, vac_idx, vac_symb
     return wrapped_pos, cluster_symbols, local_cell, n_real_atoms, vac_cluster_idx
 
 
-def process_single_file(vasp_file, output_dir, cutoff, max_vac_per_file=50, min_atoms=0, 
-                       template_positions=None, template_cell=None, save_template=False):
+def process_single_file(vasp_file, output_dir, cutoff, max_vac_per_file=50, min_atoms=0,
+                       template_positions=None, template_cell=None, save_template=False, n_templates=10):
     """Process a single VASP file and extract local environments.
 
     Args:
@@ -224,6 +224,7 @@ def process_single_file(vasp_file, output_dir, cutoff, max_vac_per_file=50, min_
         template_positions: Template positions (if already extracted)
         template_cell: Template cell (if already extracted)
         save_template: Whether to save individual template files
+        n_templates: Number of template structures to save
     """
     vasp_file = Path(vasp_file)
     output_dir = Path(output_dir)
@@ -275,8 +276,8 @@ def process_single_file(vasp_file, output_dir, cutoff, max_vac_per_file=50, min_
         if n_real_atoms <= min_atoms:
             continue
 
-        # Save first 10 structures as individual templates for testing
-        if save_template and idx < 10:
+        # Save first n_templates structures as individual templates for testing
+        if save_template and idx < n_templates:
             output_file = output_dir / f"template_{idx}_step{step_num}_vac{vac_idx}_{vac_symbol}.npz"
             np.savez_compressed(
                 output_file,
@@ -311,9 +312,9 @@ def process_single_file(vasp_file, output_dir, cutoff, max_vac_per_file=50, min_
 
 def process_file_wrapper(args):
     """Wrapper for multiprocessing - unpacks arguments"""
-    vasp_file, output_dir, cutoff, max_vac_per_file, min_atoms, save_template = args
+    vasp_file, output_dir, cutoff, max_vac_per_file, min_atoms, save_template, n_templates = args
     return process_single_file(vasp_file, output_dir, cutoff, max_vac_per_file, min_atoms,
-                               save_template=save_template)
+                               save_template=save_template, n_templates=n_templates)
 
 
 def main():
@@ -334,6 +335,8 @@ def main():
                         help='Minimum vacancy percentage for random structures (default: 0.1)')
     parser.add_argument('--vac_pct_max', type=float, default=0.8,
                         help='Maximum vacancy percentage for random structures (default: 0.8)')
+    parser.add_argument('--n_templates', type=int, default=10,
+                        help='Number of template structures to save (default: 10)')
     args = parser.parse_args()
     
     configs_dir = Path('../kmc_result/configs_2025_11_26_14_20_16')
@@ -349,6 +352,7 @@ def main():
     n_random = args.n_random
     vac_pct_min = args.vac_pct_min
     vac_pct_max = args.vac_pct_max
+    n_templates = args.n_templates
 
     print("="*60)
     print("Extracting Local Environments (PARALLEL VERSION - OPTIMIZED)")
@@ -361,7 +365,7 @@ def main():
     print(f"Train/test split: {1-test_ratio:.0%} train, {test_ratio:.0%} test (seed={seed})")
     if n_random > 0:
         print(f"Random structures: {n_random} (vacancy {vac_pct_min*100:.0f}%-{vac_pct_max*100:.0f}%)")
-    print(f"Output: Bulk atomic_numbers + 10 template structures")
+    print(f"Output: Bulk atomic_numbers + {n_templates} template structures")
     print("="*60)
     print()
 
@@ -371,7 +375,7 @@ def main():
 
     # Prepare arguments for parallel processing
     # Only save templates for first file
-    task_args = [(str(f), str(output_dir), cutoff, max_vac_per_file, min_atoms, i == 0) 
+    task_args = [(str(f), str(output_dir), cutoff, max_vac_per_file, min_atoms, i == 0, n_templates)
                  for i, f in enumerate(vasp_files)]
     
     all_metadata = []
@@ -594,7 +598,7 @@ def main():
             'max_vacancies_per_file': max_vac_per_file,
             'vacancy_replacement': 'X->Li, XO->F',
             'output_format': 'bulk_npz',
-            'n_template_structures': 10,
+            'n_template_structures': n_templates,
             'train_file': 'train_atomic_numbers.npz',
             'test_file': 'test_atomic_numbers.npz',
             'bulk_file': 'all_structures_atomic_numbers.npz',
@@ -622,7 +626,7 @@ def main():
     print(f"Total structures: {n_total}")
     print(f"  - Train set: {n_train} ({100*n_train/n_total:.1f}%)")
     print(f"  - Test set:  {n_test} ({100*n_test/n_total:.1f}%)")
-    print(f"Template structures saved: 10")
+    print(f"Template structures saved: {n_templates}")
     print(f"Random seed for split: {seed}")
     if errors:
         print(f"Errors encountered: {len(errors)}")

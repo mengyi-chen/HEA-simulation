@@ -43,8 +43,8 @@ class KMCParams:
     #   O-O (32e sites): 12 neighbors at (√2/4)a ≈ 0.354a
 
     # Nearest-neighbor distances in ideal cubic spinel structure
-    nn_factor_A: float = 0.454663336987  # (√3/4) * 1.05 for A-A neighbors
-    nn_factor_B: float = 0.435307003734  # (√11/8) * 1.05 for B-B neighbors
+    nn_factor_A: float = 0.454663336987  # (√3/4) * 1.05 for A-A/ A-B neighbors
+    nn_factor_B: float = 0.435307003734  # (√11/8) * 1.05 for B-B / B-A neighbors
     nn_factor_O: float = 0.371231060123  # (√2/4) * 1.05 for O-O neighbors
 
     # Element list for SRO calculation
