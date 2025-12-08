@@ -49,7 +49,7 @@ def load_structure_from_npz(path):
     return Structure(lattice, species, coords, coords_are_cartesian=True)
 
 
-def create_primitive_structure(ref_path='./POSCAR.POSCAR.vasp'):
+def create_primitive_structure(ref_path='../generate_config/POSCAR.POSCAR.vasp'):
     """Create the primitive structure for the HEA spinel oxide."""
     unit = Structure.from_file(ref_path)
     print("Using CONVENTIONAL cubic cell")
